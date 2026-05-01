@@ -10,9 +10,12 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
+
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
-    "deploy": "npm run prisma:generate && npm run prisma:migrate && npm run start:prod"
+    "prisma:deploy": "prisma migrate deploy",
+
+    "deploy": "npm run prisma:generate && npm run prisma:deploy && npm run build && npm run start:prod"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
