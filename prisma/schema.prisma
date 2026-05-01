@@ -1,0 +1,213 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  PELANGGAN
+}
+
+enum Kelas {
+  EKSEKUTIF
+  EKONOMI
+}
+
+enum StatusPembelian {
+  PENDING
+  PAID
+  CANCELED
+}
+
+model User {
+  id       String @id @default(uuid())
+  username String @unique
+  password String
+  role     Role
+
+  pelanggan Pelanggan?
+  petugas   Petugas?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([username])
+}
+
+model Pelanggan {
+  id     String @id @default(uuid())
+  nik    String @unique
+  nama   String
+  alamat String
+  telp   String
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  pembelian Pembelian[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Petugas {
+  id     String @id @default(uuid())
+  nama   String
+  alamat String
+  telp   String
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Kereta {
+  id        String  @id @default(uuid())
+  nama      String
+  deskripsi String?
+
+  gerbong Gerbong[]
+  jadwal  Jadwal[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([nama])
+}
+
+model Gerbong {
+  id    String @id @default(uuid())
+  nama  String
+  kuota Int
+  kelas Kelas
+
+  keretaId String
+  kereta   Kereta @relation(fields: [keretaId], references: [id])
+
+  kursi  Kursi[]
+  detail DetailPembelian[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([keretaId])
+}
+
+model Kursi {
+  id String @id @default(uuid())
+
+  row   Int
+  seat  String
+  label String
+
+  gerbongId String
+  gerbong   Gerbong @relation(fields: [gerbongId], references: [id])
+
+  detail DetailPembelian[]
+
+  @@unique([gerbongId, row, seat])
+  @@unique([gerbongId, label])
+  @@index([gerbongId])
+}
+
+model Jadwal {
+  id               String   @id @default(uuid())
+  asal             String
+  tujuan           String
+  tanggalBerangkat DateTime
+  tanggalTiba      DateTime
+  harga            Decimal  @db.Decimal(10, 2)
+
+  keretaId String
+  kereta   Kereta @relation(fields: [keretaId], references: [id])
+
+  pembelian Pembelian[]
+  detail    DetailPembelian[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([keretaId])
+  @@index([asal])
+  @@index([tujuan])
+  @@index([tanggalBerangkat])
+}
+
+model Pembelian {
+  id          String   @id @default(uuid())
+  kodeBooking String   @unique
+  tanggal     DateTime @default(now())
+
+  status StatusPembelian @default(PENDING)
+
+  pelangganId String
+  pelanggan   Pelanggan @relation(fields: [pelangganId], references: [id])
+
+  jadwalId String
+  jadwal   Jadwal @relation(fields: [jadwalId], references: [id])
+
+  total Decimal @db.Decimal(10, 2)
+
+  payment Payment?
+  detail  DetailPembelian[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pelangganId])
+  @@index([jadwalId])
+  @@index([status])
+}
+
+model DetailPembelian {
+  id            String @id @default(uuid())
+  namaPenumpang String
+
+  pembelianId String
+  pembelian   Pembelian @relation(fields: [pembelianId], references: [id])
+
+  kursiId String
+  kursi   Kursi  @relation(fields: [kursiId], references: [id])
+
+  gerbongId String
+  gerbong   Gerbong @relation(fields: [gerbongId], references: [id])
+
+  jadwalId String
+  jadwal   Jadwal @relation(fields: [jadwalId], references: [id])
+
+  @@unique([kursiId, jadwalId])
+  @@index([pembelianId])
+  @@index([jadwalId])
+  @@index([gerbongId])
+}
+
+model Payment {
+  id         String    @id @default(uuid())
+  metode     String    @default("QRIS")
+  qrImageUrl String?
+  paidAt     DateTime?
+  refundedAt DateTime?
+
+  pembelianId String    @unique
+  pembelian   Pembelian @relation(fields: [pembelianId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([pembelianId])
+}
