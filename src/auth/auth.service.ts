@@ -27,7 +27,7 @@ export class AuthService {
     const user = await this.usersService.create({
       username: dto.username,
       password: dto.password,
-      role: 'PELANGGAN',
+      role: (dto.role === 'ADMIN' ? 'ADMIN' : 'PELANGGAN'),
     });
 
     await this.pelangganService.create({
