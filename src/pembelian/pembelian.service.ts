@@ -136,40 +136,6 @@ export class PembelianService {
   async findMine(
     userId: string,
   ) {
-    return this.prisma.pembelian.findMany({
-      where: {
-        pelanggan: {
-          userId,
-        },
-      },
-
-      include: {
-        payment: true,
-
-        detail: {
-          include: {
-            kursi: true,
-            gerbong: true,
-          },
-        },
-
-        jadwal: {
-          include: {
-            kereta: true,
-          },
-        },
-      },
-
-      orderBy: {
-        createdAt:
-          'desc',
-      },
-    })
-  }
-
-  async findMine(
-    userId: string,
-  ) {
     const pelanggan =
       await this.prisma.pelanggan.findFirst({
         where: {
@@ -220,6 +186,40 @@ export class PembelianService {
       })
 
     return tiket
+  }
+
+  async findOneMine(
+    userId: string,
+    id: string,
+  ) {
+    const pelanggan =
+      await this.prisma.pelanggan.findFirst({
+        where: { userId },
+        select: { id: true },
+      })
+
+    if (!pelanggan) {
+      throw new NotFoundException('Profil pelanggan belum dibuat')
+    }
+
+    const data =
+      await this.prisma.pembelian.findFirst({
+        where: {
+          id,
+          pelangganId: pelanggan.id,
+        },
+        include: {
+          jadwal: { include: { kereta: true } },
+          detail: { include: { kursi: true } },
+          payment: true,
+        },
+      })
+
+    if (!data) {
+      throw new NotFoundException('Pembelian tidak ditemukan')
+    }
+
+    return data
   }
 
   async confirmPayment(

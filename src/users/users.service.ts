@@ -76,6 +76,9 @@ export class UsersService {
           : {
               pelanggan: {
                 create: {
+                  nik:
+                    username,
+
                   nama:
                     username,
 
