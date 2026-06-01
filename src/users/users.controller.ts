@@ -15,52 +15,89 @@ import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
 @ApiTags('Users')
+} from '@nestjs/common'
+
+import { UsersService } from './users.service'
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+  ) {}
 
   @Post()
-  create(
+  async create(
     @Body()
     body: {
-      username: string;
-      password: string;
-      role: 'ADMIN' | 'PELANGGAN';
+      username: string
+      password: string
+      role:
+        | 'ADMIN'
+        | 'PELANGGAN'
     },
   ) {
-    return this.usersService.create(body);
+    return this.usersService.create(
+      body,
+    )
   }
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  async findAll() {
+    return this.usersService.findAll()
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+  async findOne(
+    @Param('id')
+    id: string,
+  ) {
+    return this.usersService.findOne(
+      id,
+    )
   }
 
   @Patch(':id')
-  update(
-    @Param('id') id: string,
+  async update(
+    @Param('id')
+    id: string,
+
     @Body()
     body: {
-      username?: string;
-      password?: string;
+      username?: string
+      password?: string
     },
   ) {
-    return this.usersService.update(id, body);
+    return this.usersService.update(
+      id,
+      body,
+    )
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  async remove(
+    @Param('id')
+    id: string,
+  ) {
+    return this.usersService.remove(
+      id,
+    )
   }
 
-  @Post('bootstrap-admin')
-  createFirstAdmin(@Body() body: any) {
-    return this.usersService.bootstrapAdmin(body);
+  @Post(
+    'bootstrap-admin',
+  )
+  async bootstrapAdmin(
+    @Body()
+    body: {
+      username: string
+      password: string
+      nama: string
+      alamat: string
+      telp: string
+    },
+  ) {
+    return this.usersService.bootstrapAdmin(
+      body,
+    )
   }
 }

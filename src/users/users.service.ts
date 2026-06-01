@@ -2,156 +2,267 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import * as bcrypt from 'bcrypt';
+} from '@nestjs/common'
+
+import { PrismaService } from 'src/prisma/prisma.service'
+
+import * as bcrypt from 'bcrypt'
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+  ) {}
 
-  async create(data: {
-    username: string;
-    password: string;
-    role: 'ADMIN' | 'PELANGGAN';
-  }) {
-    const exist = await this.prisma.user.findUnique({
-      where: { username: data.username },
-    });
+  async create(
+    data: {
+      username: string
+      password: string
+      role:
+        | 'ADMIN'
+        | 'PELANGGAN'
+    },
+  ) {
+    const username =
+      data.username.trim()
 
-    if (exist) throw new BadRequestException('Username already exists');
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-
-    const user = await this.prisma.user.create({
-      data: {
-        username: data.username,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        password: hashedPassword,
-        role: data.role,
-      },
-    });
-
-    if (data.role === 'ADMIN') {
-      await this.prisma.petugas.create({
-        data: {
-          nama: data.username,
-          alamat: '-',
-          telp: '-',
-          userId: user.id,
+    const exist =
+      await this.prisma.user.findUnique(
+        {
+          where: {
+            username,
+          },
         },
-      });
+      )
+
+    if (exist) {
+      throw new BadRequestException(
+        'Username sudah digunakan',
+      )
     }
 
-    return user;
+    const hashed =
+      await bcrypt.hash(
+        data.password,
+        10,
+      )
+
+    return this.prisma.user.create({
+      data: {
+        username,
+
+        password:
+          hashed,
+
+        role:
+          data.role,
+
+        ...(data.role ===
+        'ADMIN'
+          ? {
+              petugas: {
+                create: {
+                  nama:
+                    username,
+
+                  alamat:
+                    '-',
+
+                  telp:
+                    '-',
+                },
+              },
+            }
+          : {
+              pelanggan: {
+                create: {
+                  nama:
+                    username,
+
+                  alamat:
+                    '-',
+
+                  telp:
+                    '-',
+                },
+              },
+            }),
+      },
+
+      include: {
+        pelanggan:
+          true,
+
+        petugas:
+          true,
+      },
+    })
   }
 
   async findAll() {
     return this.prisma.user.findMany({
       include: {
-        pelanggan: true,
-        petugas: true,
+        pelanggan:
+          true,
+
+        petugas:
+          true,
       },
-    });
+    })
   }
 
-  async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      include: {
-        pelanggan: true,
-        petugas: true,
-      },
-    });
+  async findOne(
+    id: string,
+  ) {
+    const user =
+      await this.prisma.user.findUnique(
+        {
+          where: {
+            id,
+          },
 
-    if (!user) throw new NotFoundException('User not found');
+          include: {
+            pelanggan:
+              true,
 
-    return user;
+            petugas:
+              true,
+          },
+        },
+      )
+
+    if (!user) {
+      throw new NotFoundException(
+        'User tidak ditemukan',
+      )
+    }
+
+    return user
   }
 
-  async findByUsername(username: string) {
-    return this.prisma.user.findUnique({
-      where: { username },
-    });
+  async findByUsername(
+    username: string,
+  ) {
+    return this.prisma.user.findUnique(
+      {
+        where: {
+          username,
+        },
+
+        include: {
+          pelanggan:
+            true,
+
+          petugas:
+            true,
+        },
+      },
+    )
   }
 
   async update(
     id: string,
     data: {
-      username?: string;
-      password?: string;
+      username?: string
+      password?: string
     },
   ) {
-    const user = await this.findOne(id);
+    await this.findOne(
+      id,
+    )
 
-    if (!user) throw new NotFoundException('User not found');
-
-    if (data.password) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      data.password = await bcrypt.hash(data.password, 10);
+    if (
+      data.password
+    ) {
+      data.password =
+        await bcrypt.hash(
+          data.password,
+          10,
+        )
     }
 
-    return this.prisma.user.update({
-      where: { id },
-      data,
-    });
+    return this.prisma.user.update(
+      {
+        where: {
+          id,
+        },
+
+        data,
+      },
+    )
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(
+    id: string,
+  ) {
+    await this.findOne(
+      id,
+    )
 
-    return this.prisma.user.delete({
-      where: { id },
-    });
+    return this.prisma.user.delete(
+      {
+        where: {
+          id,
+        },
+      },
+    )
   }
 
-  async bootstrapAdmin(data: {
-    username: string;
-    password: string;
-    nama: string;
-    alamat: string;
-    telp: string;
-  }) {
-    const adminExist = await this.prisma.user.findFirst({
-      where: { role: 'ADMIN' },
-    });
+  async bootstrapAdmin(
+    data: {
+      username: string
+      password: string
+      nama: string
+      alamat: string
+      telp: string
+    },
+  ) {
+    const admin =
+      await this.prisma.user.findFirst(
+        {
+          where: {
+            role:
+              'ADMIN',
+          },
+        },
+      )
 
-    if (adminExist) {
-      throw new BadRequestException('Admin sudah ada');
+    if (admin) {
+      throw new BadRequestException(
+        'Admin sudah ada',
+      )
     }
 
-    const username = data.username.trim();
-    const password = data.password.trim();
-
-    const exist = await this.prisma.user.findUnique({
-      where: { username },
-    });
-
-    if (exist) {
-      throw new BadRequestException('Username sudah digunakan');
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const hashed = await bcrypt.hash(password, 10);
+    const hashed =
+      await bcrypt.hash(
+        data.password,
+        10,
+      )
 
     return this.prisma.user.create({
       data: {
-        username,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        password: hashed,
-        role: 'ADMIN',
+        username:
+          data.username,
+
+        password:
+          hashed,
+
+        role:
+          'ADMIN',
+
         petugas: {
           create: {
-            nama: data.nama,
-            alamat: data.alamat,
-            telp: data.telp,
+            nama:
+              data.nama,
+
+            alamat:
+              data.alamat,
+
+            telp:
+              data.telp,
           },
         },
       },
-      include: {
-        petugas: true,
-      },
-    });
+    })
   }
 }

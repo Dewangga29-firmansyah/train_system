@@ -17,49 +17,96 @@ import { CreatePembelianDto } from './dto/create-pembelian.dto';
 import express from 'express';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { ApiTags } from '@nestjs/swagger';
+} from '@nestjs/common'
+
+import express from 'express'
+
+import { PembelianService } from './pembelian.service'
+
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard'
+
+import { RolesGuard } from 'src/auth/guard/roles.guard'
+
+import { Roles } from 'src/auth/decorators/roles.decorator'
+
+import { CreatePembelianDto } from './dto/create-pembelian.dto'
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
 @ApiTags('Pembelian')
 @Controller('pembelian')
 export class PembelianController {
-  constructor(private readonly pembelianService: PembelianService) {}
+  constructor(
+    private readonly pembelianService: PembelianService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  create(@Req() req: any, @Body() dto: CreatePembelianDto) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-    return this.pembelianService.create(req.user.sub, dto);
+  create(
+    @Req() req: any,
+    @Body() dto: CreatePembelianDto,
+  ) {
+    return this.pembelianService.create(
+      req.user.sub,
+      dto,
+    )
+  }
+
+  @Get('mine')
+  @UseGuards(JwtAuthGuard)
+  mine(
+    @Req() req: any,
+  ) {
+    return this.pembelianService.findMine(
+      req.user.sub,
+    )
+  }
+
+  @Get('mine/:id')
+  @UseGuards(JwtAuthGuard)
+  detail(
+    @Req() req: any,
+    @Param('id') id: string,
+  ) {
+    return this.pembelianService.findOneMine(
+      req.user.sub,
+      id,
+    )
   }
 
   @Patch(':id/confirm')
   @UseGuards(JwtAuthGuard)
-  confirm(@Param('id') id: string) {
-    return this.pembelianService.confirmPayment(id);
-  }
-
-  @Patch(':id/cancel')
-  @UseGuards(JwtAuthGuard)
-  cancel(@Param('id') id: string) {
-    return this.pembelianService.cancelPembelian(id);
+  confirm(
+    @Req() req: any,
+    @Param('id') id: string,
+  ) {
+    return this.pembelianService.confirmPayment(
+      req.user.sub,
+      id,
+    )
   }
 
   @Get(':id/tiket')
   @UseGuards(JwtAuthGuard)
-  generateTiket(@Param('id') id: string, @Res() res: express.Response) {
-    return this.pembelianService.generateTiketPdf(id, res);
+  tiket(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Res() res: express.Response,
+  ) {
+    return this.pembelianService.generateTiketPdf(
+      req.user.sub,
+      id,
+      res,
+    )
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+  )
   @Roles('ADMIN')
   findAll() {
-    return this.pembelianService.findAll();
-  }
-
-  @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  findOne(@Param('id') id: string) {
-    return this.pembelianService.findOne(id);
+    return this.pembelianService.findAll()
   }
 }
