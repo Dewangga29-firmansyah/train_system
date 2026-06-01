@@ -2,16 +2,20 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { CreatePembelianDto } from './dto/create-pembelian.dto';
-import * as QRCode from 'qrcode';
-import PDFDocument from 'pdfkit';
-import { Response } from 'express';
+} from '@nestjs/common'
+
+import { PrismaService } from 'src/prisma/prisma.service'
+import { CreatePembelianDto } from './dto/create-pembelian.dto'
+
+import * as QRCode from 'qrcode'
+import PDFDocument from 'pdfkit'
+import { Response } from 'express'
 
 @Injectable()
 export class PembelianService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+  ) {}
 
   async create(
     userId: string,
@@ -47,27 +51,8 @@ export class PembelianService {
 
         const kursiIds =
           dto.penumpang.map(
-            (p) =>
-              p.kursiId,
+            (v) => v.kursiId,
           )
-
-        const kursi =
-          await tx.kursi.findMany({
-            where: {
-              id: {
-                in: kursiIds,
-              },
-            },
-          })
-
-        if (
-          kursi.length !==
-          kursiIds.length
-        ) {
-          throw new BadRequestException(
-            'Ada kursi tidak valid',
-          )
-        }
 
         const booked =
           await tx.detailPembelian.findMany({
@@ -89,6 +74,15 @@ export class PembelianService {
           )
         }
 
+        const kursi =
+          await tx.kursi.findMany({
+            where: {
+              id: {
+                in: kursiIds,
+              },
+            },
+          })
+
         const pembelian =
           await tx.pembelian.create({
             data: {
@@ -105,51 +99,39 @@ export class PembelianService {
                 Number(
                   jadwal.harga,
                 ) *
-                dto
-                  .penumpang
-                  .length,
+                dto.penumpang.length,
 
               status:
                 'PENDING',
             },
           })
 
-        await tx.detailPembelian.createMany(
-          {
-            data:
-              dto.penumpang.map(
-                (
-                  p,
-                ) => {
-                  const seat =
-                    kursi.find(
-                      (
-                        k,
-                      ) =>
-                        k.id ===
-                        p.kursiId,
-                    )!
+        await tx.detailPembelian.createMany({
+          data:
+            dto.penumpang.map(
+              (p) => ({
+                pembelianId:
+                  pembelian.id,
 
-                  return {
-                    pembelianId:
-                      pembelian.id,
+                kursiId:
+                  p.kursiId,
 
-                    jadwalId:
-                      dto.jadwalId,
+                jadwalId:
+                  dto.jadwalId,
 
-                    kursiId:
+                namaPenumpang:
+                  p.namaPenumpang,
+
+                gerbongId:
+                  kursi.find(
+                    (k) =>
+                      k.id ===
                       p.kursiId,
-
-                    gerbongId:
-                      seat.gerbongId,
-
-                    namaPenumpang:
-                      p.namaPenumpang,
-                  }
-                },
-              ),
-          },
-        )
+                  )!
+                    .gerbongId,
+              }),
+            ),
+        })
 
         await tx.payment.create({
           data: {
@@ -169,160 +151,27 @@ export class PembelianService {
     )
   }
 
-  async confirmPayment(id: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const data = await tx.pembelian.findUnique({
-        where: { id },
-      });
-
-      if (!data) {
-        throw new NotFoundException('Pembelian tidak ditemukan');
-      }
-
-      await tx.payment.update({
-        where: { pembelianId: id },
-        data: {
-          paidAt: new Date(),
+  async findMine(
+    userId: string,
+  ) {
+    const pelanggan =
+      await this.prisma.pelanggan.findFirst({
+        where: {
+          userId,
         },
-      });
+      })
 
-      return tx.pembelian.update({
-        where: { id },
-        data: {
-          status: 'PAID',
-        },
-      });
-    });
-  }
-
-  async cancelPembelian(id: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const data = await tx.pembelian.findUnique({
-        where: { id },
-        include: { jadwal: true },
-      });
-
-      if (!data) {
-        throw new NotFoundException('Pembelian tidak ditemukan');
-      }
-
-      if (data.status !== 'PAID') {
-        throw new BadRequestException('Hanya tiket PAID yang bisa dibatalkan');
-      }
-
-      const now = new Date();
-      const batas = new Date(data.jadwal.tanggalBerangkat);
-      batas.setHours(batas.getHours() - 2);
-
-      if (now >= batas) {
-        throw new BadRequestException('Refund ditutup (H-2 jam)');
-      }
-
-      await tx.payment.update({
-        where: { pembelianId: id },
-        data: {
-          refundedAt: new Date(),
-        },
-      });
-
-      return tx.pembelian.update({
-        where: { id },
-        data: {
-          status: 'CANCELED',
-        },
-      });
-    });
-  }
-
-  async getTiket(id: string) {
-    const data = await this.prisma.pembelian.findUnique({
-      where: { id },
-      include: {
-        pelanggan: true,
-        detail: {
-          include: {
-            kursi: true,
-            gerbong: true,
-          },
-        },
-        jadwal: {
-          include: {
-            kereta: true,
-          },
-        },
-        payment: true,
-      },
-    });
-
-    if (!data) {
-      throw new NotFoundException('Pembelian tidak ditemukan');
+    if (!pelanggan) {
+      return []
     }
 
-    if (data.status !== 'PAID') {
-      throw new BadRequestException('Tiket belum tersedia');
-    }
-
-    return data;
-  }
-
-  async generateTiketPdf(id: string, res: Response) {
-    const data = await this.getTiket(id);
-
-    const qrData = JSON.stringify({
-      kodeBooking: data.kodeBooking,
-      id: data.id,
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const qrImage = await QRCode.toDataURL(qrData);
-
-    const doc = new PDFDocument({ size: 'A4', margin: 50 });
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=tiket-${data.kodeBooking}.pdf`,
-    );
-
-    doc.pipe(res);
-
-    doc.fontSize(20).text('TIKET KERETA', { align: 'center' });
-    doc.moveDown();
-
-    doc.fontSize(12).text(`Kode Booking: ${data.kodeBooking}`);
-    doc.text(`Nama: ${data.pelanggan.nama}`);
-    doc.text(`Kereta: ${data.jadwal.kereta.nama}`);
-    doc.text(`Asal: ${data.jadwal.asal}`);
-    doc.text(`Tujuan: ${data.jadwal.tujuan}`);
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    doc.text(`Tanggal: ${data.jadwal.tanggalBerangkat}`);
-
-    doc.moveDown();
-
-    data.detail.forEach((d, i) => {
-      doc.text(
-        `Penumpang ${i + 1}: ${d.namaPenumpang} - ${d.kursi.label} (${d.gerbong.nama})`,
-      );
-    });
-
-    doc.moveDown();
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const qrBuffer = Buffer.from(qrImage.split(',')[1], 'base64');
-
-    doc.image(qrBuffer, {
-      fit: [150, 150],
-      align: 'center',
-    });
-
-    doc.end();
-  }
-
-  findAll() {
     return this.prisma.pembelian.findMany({
-      include: {
-        pelanggan: true,
+      where: {
+        pelangganId:
+          pelanggan.id,
+      },
 
+      include: {
         payment: true,
 
         detail: {
@@ -340,16 +189,30 @@ export class PembelianService {
       },
 
       orderBy: {
-        createdAt: 'desc',
+        createdAt:
+          'desc',
       },
     })
   }
 
-  async findOne(id: string) {
+  async findOneMine(
+    userId: string,
+    id: string,
+  ) {
+    const pelanggan =
+      await this.prisma.pelanggan.findFirst({
+        where: {
+          userId,
+        },
+      })
+
     const data =
-      await this.prisma.pembelian.findUnique({
+      await this.prisma.pembelian.findFirst({
         where: {
           id,
+
+          pelangganId:
+            pelanggan?.id,
         },
 
         include: {
@@ -366,11 +229,7 @@ export class PembelianService {
 
           jadwal: {
             include: {
-              kereta: {
-                include: {
-                  gerbong: true,
-                },
-              },
+              kereta: true,
             },
           },
         },
@@ -378,54 +237,138 @@ export class PembelianService {
 
     if (!data) {
       throw new NotFoundException(
-        'Pembelian anda tidak ditemukan',
+        'Tiket bukan milik anda',
       )
     }
 
     return data
   }
 
-  async findMine(
-  userId: string,
-) {
-  const pelanggan =
-    await this.prisma.pelanggan.findFirst({
+  async confirmPayment(
+    userId: string,
+    id: string,
+  ) {
+    await this.findOneMine(
+      userId,
+      id,
+    )
+
+    await this.prisma.payment.update({
       where: {
-        userId,
+        pembelianId:
+          id,
+      },
+
+      data: {
+        paidAt:
+          new Date(),
       },
     })
 
-  if (!pelanggan) {
-    return []
+    return this.prisma.pembelian.update({
+      where: {
+        id,
+      },
+
+      data: {
+        status:
+          'PAID',
+      },
+    })
   }
 
-  return this.prisma.pembelian.findMany({
-    where: {
-      pelangganId:
-        pelanggan.id,
-    },
+  async cancelPembelian(
+    userId: string,
+    id: string,
+  ) {
+    await this.findOneMine(
+      userId,
+      id,
+    )
 
-    include: {
-      detail: {
-        include: {
-          kursi: true,
-          gerbong: true,
-        },
+    return this.prisma.pembelian.update({
+      where: {
+        id,
       },
 
-      jadwal: {
-        include: {
-          kereta: true,
-        },
+      data: {
+        status:
+          'CANCELED',
       },
+    })
+  }
 
-      payment: true,
-    },
+  async generateTiketPdf(
+    userId: string,
+    id: string,
+    res: Response,
+  ) {
+    const data =
+      await this.findOneMine(
+        userId,
+        id,
+      )
 
-    orderBy: {
-      createdAt:
-        'desc',
-    },
-  })
-}
+    const qr =
+      await QRCode.toDataURL(
+        data.kodeBooking,
+      )
+
+    const doc =
+      new PDFDocument()
+
+    res.setHeader(
+      'Content-Type',
+      'application/pdf',
+    )
+
+    doc.pipe(
+      res,
+    )
+
+    doc
+      .fontSize(24)
+      .text(
+        'TIKET KERETA',
+      )
+
+    doc.moveDown()
+
+    doc.text(
+      data.kodeBooking,
+    )
+
+    doc.text(
+      data.jadwal.asal,
+    )
+
+    doc.text(
+      data.jadwal.tujuan,
+    )
+
+    doc.image(
+      Buffer.from(
+        qr.split(
+          ',',
+        )[1],
+        'base64',
+      ),
+      {
+        fit: [
+          180,
+          180,
+        ],
+      },
+    )
+
+    doc.end()
+  }
+
+  findAll() {
+    return this.prisma.pembelian.findMany({
+      include: {
+        pelanggan: true,
+      },
+    })
+  }
 }
