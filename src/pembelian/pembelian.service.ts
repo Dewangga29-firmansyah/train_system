@@ -384,4 +384,48 @@ export class PembelianService {
 
     return data
   }
+
+  async findMine(
+  userId: string,
+) {
+  const pelanggan =
+    await this.prisma.pelanggan.findFirst({
+      where: {
+        userId,
+      },
+    })
+
+  if (!pelanggan) {
+    return []
+  }
+
+  return this.prisma.pembelian.findMany({
+    where: {
+      pelangganId:
+        pelanggan.id,
+    },
+
+    include: {
+      detail: {
+        include: {
+          kursi: true,
+          gerbong: true,
+        },
+      },
+
+      jadwal: {
+        include: {
+          kereta: true,
+        },
+      },
+
+      payment: true,
+    },
+
+    orderBy: {
+      createdAt:
+        'desc',
+    },
+  })
+}
 }

@@ -57,4 +57,14 @@ export class PembelianController {
   findOne(@Param('id') id: string) {
     return this.pembelianService.findOne(id);
   }
+
+  @Get('mine')
+@UseGuards(JwtAuthGuard)
+findMine(
+  @Req() req: any,
+) {
+  return this.pembelianService.findMine(
+    req.user.sub,
+  )
+}
 }
