@@ -378,7 +378,7 @@ export class PembelianService {
 
     if (!data) {
       throw new NotFoundException(
-        'Pembelian tidak ditemukan',
+        'Pembelian anda tidak ditemukan',
       )
     }
 
