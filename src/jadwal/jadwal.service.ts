@@ -67,21 +67,42 @@ export class JadwalService {
   }
 
   async findOneJadwal(id: string) {
-    const data = await this.prisma.jadwal.findUnique({
-      where: { id },
+  const data =
+    await this.prisma.jadwal.findUnique({
+      where: {
+        id,
+      },
+
       include: {
         kereta: {
           include: {
-            gerbong: true,
+            gerbong: {
+              include: {
+                kursi: {
+                  orderBy: [
+                    {
+                      row: 'asc',
+                    },
+                    {
+                      seat: 'asc',
+                    },
+                  ],
+                },
+              },
+            },
           },
         },
       },
-    });
+    })
 
-    if (!data) throw new NotFoundException('Jadwal tidak ditemukan');
-
-    return data;
+  if (!data) {
+    throw new NotFoundException(
+      'Jadwal tidak ditemukan'
+    )
   }
+
+  return data
+}
 
   async removeJadwal(id: string) {
     return this.prisma.jadwal.delete({

@@ -22,6 +22,7 @@ export class JadwalController {
   constructor(private jadwalService: JadwalService) {}
 
   @Get()
+
   findAllJadwal() {
     return this.jadwalService.findAllJadwal();
   }
