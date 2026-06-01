@@ -6,7 +6,7 @@ import { SearchJadwalDto } from './dto/search-jadwal.dto';
 
 @Injectable()
 export class JadwalService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async createJadwal(dto: CreateJadwalDto) {
     return this.prisma.jadwal.create({
@@ -59,50 +59,58 @@ export class JadwalService {
   }
 
   async findAllJadwal() {
-    return this.prisma.jadwal.findMany({
-      include: {
-        kereta: true,
+  return this.prisma.jadwal.findMany({
+    include: {
+      kereta: {
+        include: {
+          gerbong: {
+            include: {
+              kursi: true,
+            },
+          },
+        },
       },
-    });
-  }
+    },
+  })
+}
 
   async findOneJadwal(id: string) {
-  const data =
-    await this.prisma.jadwal.findUnique({
-      where: {
-        id,
-      },
+    const data =
+      await this.prisma.jadwal.findUnique({
+        where: {
+          id,
+        },
 
-      include: {
-        kereta: {
-          include: {
-            gerbong: {
-              include: {
-                kursi: {
-                  orderBy: [
-                    {
-                      row: 'asc',
-                    },
-                    {
-                      seat: 'asc',
-                    },
-                  ],
+        include: {
+          kereta: {
+            include: {
+              gerbong: {
+                include: {
+                  kursi: {
+                    orderBy: [
+                      {
+                        row: 'asc',
+                      },
+                      {
+                        seat: 'asc',
+                      },
+                    ],
+                  },
                 },
               },
             },
           },
         },
-      },
-    })
+      })
 
-  if (!data) {
-    throw new NotFoundException(
-      'Jadwal tidak ditemukan'
-    )
+    if (!data) {
+      throw new NotFoundException(
+        'Jadwal tidak ditemukan'
+      )
+    }
+
+    return data
   }
-
-  return data
-}
 
   async removeJadwal(id: string) {
     return this.prisma.jadwal.delete({
