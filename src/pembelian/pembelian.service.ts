@@ -15,7 +15,7 @@ import { Response } from 'express'
 export class PembelianService {
   constructor(
     private prisma: PrismaService,
-  ) {}
+  ) { }
 
   async create(
     userId: string,
@@ -167,47 +167,59 @@ export class PembelianService {
     })
   }
 
-  async findOneMine(
+  async findMine(
     userId: string,
-    id: string,
   ) {
-    const data =
-      await this.prisma.pembelian.findFirst({
+    const pelanggan =
+      await this.prisma.pelanggan.findFirst({
         where: {
-          id,
+          userId,
+        },
 
-          pelanggan: {
-            userId,
+        select: {
+          id: true,
+        },
+      })
+
+    if (!pelanggan) {
+      return []
+    }
+
+    const tiket =
+      await this.prisma.pembelian.findMany({
+        where: {
+          pelangganId:
+            pelanggan.id,
+
+          // tampilkan yang benar-benar ada transaksi
+          detail: {
+            some: {},
           },
         },
 
         include: {
-          pelanggan: true,
-
-          payment: true,
-
-          detail: {
-            include: {
-              kursi: true,
-              gerbong: true,
-            },
-          },
-
           jadwal: {
             include: {
               kereta: true,
             },
           },
+
+          detail: {
+            include: {
+              kursi: true,
+            },
+          },
+
+          payment: true,
+        },
+
+        orderBy: {
+          createdAt:
+            'desc',
         },
       })
 
-    if (!data) {
-      throw new NotFoundException(
-        'Tiket tidak ditemukan',
-      )
-    }
-
-    return data
+    return tiket
   }
 
   async confirmPayment(
@@ -239,7 +251,7 @@ export class PembelianService {
       data: {
         status:
           'PAID',
-        },
+      },
     })
   }
 
