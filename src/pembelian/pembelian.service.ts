@@ -152,26 +152,54 @@ export class PembelianService {
   }
 
   async findMine(
-    userId: string,
-  ) {
-    const pelanggan =
-      await this.prisma.pelanggan.findFirst({
-        where: {
+  userId: string,
+) {
+  return this.prisma.pembelian.findMany({
+    where: {
+      pelanggan: {
+        userId,
+      },
+    },
+
+    include: {
+      payment: true,
+
+      detail: {
+        include: {
+          kursi: true,
+          gerbong: true,
+        },
+      },
+
+      jadwal: {
+        include: {
+          kereta: true,
+        },
+      },
+    },
+
+    orderBy: {
+      createdAt: 'desc',
+    },
+  })
+}
+  async findOneMine(
+  userId: string,
+  id: string,
+) {
+  const tiket =
+    await this.prisma.pembelian.findFirst({
+      where: {
+        id,
+
+        pelanggan: {
           userId,
         },
-      })
-
-    if (!pelanggan) {
-      return []
-    }
-
-    return this.prisma.pembelian.findMany({
-      where: {
-        pelangganId:
-          pelanggan.id,
       },
 
       include: {
+        pelanggan: true,
+
         payment: true,
 
         detail: {
@@ -187,62 +215,16 @@ export class PembelianService {
           },
         },
       },
-
-      orderBy: {
-        createdAt:
-          'desc',
-      },
     })
+
+  if (!tiket) {
+    throw new NotFoundException(
+      'Tiket tidak ditemukan',
+    )
   }
 
-  async findOneMine(
-    userId: string,
-    id: string,
-  ) {
-    const pelanggan =
-      await this.prisma.pelanggan.findFirst({
-        where: {
-          userId,
-        },
-      })
-
-    const data =
-      await this.prisma.pembelian.findFirst({
-        where: {
-          id,
-
-          pelangganId:
-            pelanggan?.id,
-        },
-
-        include: {
-          pelanggan: true,
-
-          payment: true,
-
-          detail: {
-            include: {
-              kursi: true,
-              gerbong: true,
-            },
-          },
-
-          jadwal: {
-            include: {
-              kereta: true,
-            },
-          },
-        },
-      })
-
-    if (!data) {
-      throw new NotFoundException(
-        'Tiket bukan milik anda',
-      )
-    }
-
-    return data
-  }
+  return tiket
+}
 
   async confirmPayment(
     userId: string,

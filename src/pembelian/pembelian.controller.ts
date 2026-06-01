@@ -1,117 +1,97 @@
 import {
   Controller,
   Post,
-  Get,
-  Patch,
-  Param,
   Body,
-  Req,
-  Res,
+  Get,
+  Param,
   UseGuards,
+  Req,
+  Patch,
+  Res,
 } from '@nestjs/common'
 
 import express from 'express'
+
+import { PembelianService } from './pembelian.service'
 
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard'
 import { RolesGuard } from 'src/auth/guard/roles.guard'
 import { Roles } from 'src/auth/decorators/roles.decorator'
 
-import { PembelianService } from './pembelian.service'
 import { CreatePembelianDto } from './dto/create-pembelian.dto'
 
-@Controller(
-  'pembelian',
-)
+@Controller('pembelian')
 export class PembelianController {
   constructor(
-    private service: PembelianService,
+    private readonly pembelianService: PembelianService,
   ) {}
 
   @Post()
-  @UseGuards(
-    JwtAuthGuard,
-  )
+  @UseGuards(JwtAuthGuard)
   create(
     @Req() req: any,
-    @Body()
-    dto: CreatePembelianDto,
+    @Body() dto: CreatePembelianDto,
   ) {
-    return this.service.create(
+    return this.pembelianService.create(
       req.user.sub,
       dto,
     )
   }
 
   @Get('mine')
-  @UseGuards(
-    JwtAuthGuard,
-  )
+  @UseGuards(JwtAuthGuard)
   mine(
     @Req() req: any,
   ) {
-    return this.service.findMine(
+    return this.pembelianService.findMine(
       req.user.sub,
     )
   }
 
-  @Get(':id')
-  @UseGuards(
-    JwtAuthGuard,
-  )
-  findOne(
+  @Get('mine/:id')
+  @UseGuards(JwtAuthGuard)
+  mineDetail(
     @Req() req: any,
-    @Param('id')
-    id: string,
+    @Param('id') id: string,
   ) {
-    return this.service.findOneMine(
+    return this.pembelianService.findOneMine(
       req.user.sub,
       id,
     )
   }
 
   @Patch(':id/confirm')
-  @UseGuards(
-    JwtAuthGuard,
-  )
+  @UseGuards(JwtAuthGuard)
   confirm(
     @Req() req: any,
-    @Param('id')
-    id: string,
+    @Param('id') id: string,
   ) {
-    return this.service.confirmPayment(
+    return this.pembelianService.confirmPayment(
       req.user.sub,
       id,
     )
   }
 
   @Patch(':id/cancel')
-  @UseGuards(
-    JwtAuthGuard,
-  )
+  @UseGuards(JwtAuthGuard)
   cancel(
     @Req() req: any,
-    @Param('id')
-    id: string,
+    @Param('id') id: string,
   ) {
-    return this.service.cancelPembelian(
+    return this.pembelianService.cancelPembelian(
       req.user.sub,
       id,
     )
   }
 
   @Get(':id/tiket')
-  @UseGuards(
-    JwtAuthGuard,
-  )
+  @UseGuards(JwtAuthGuard)
   tiket(
     @Req() req: any,
-    @Param('id')
-    id: string,
-
-    @Res()
-    res: express.Response,
+    @Param('id') id: string,
+    @Res() res: express.Response,
   ) {
-    return this.service.generateTiketPdf(
+    return this.pembelianService.generateTiketPdf(
       req.user.sub,
       id,
       res,
@@ -123,10 +103,8 @@ export class PembelianController {
     JwtAuthGuard,
     RolesGuard,
   )
-  @Roles(
-    'ADMIN',
-  )
-  all() {
-    return this.service.findAll()
+  @Roles('ADMIN')
+  findAll() {
+    return this.pembelianService.findAll()
   }
 }
