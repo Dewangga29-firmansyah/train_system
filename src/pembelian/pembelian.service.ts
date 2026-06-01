@@ -11,163 +11,163 @@ import { Response } from 'express';
 
 @Injectable()
 export class PembelianService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(
-  userId: string,
-  dto: CreatePembelianDto,
-) {
-  return this.prisma.$transaction(
-    async (tx) => {
-      const pelanggan =
-        await tx.pelanggan.findFirst({
-          where: {
-            userId,
-          },
-        })
-
-      if (!pelanggan) {
-        throw new NotFoundException(
-          'Profil pelanggan belum dibuat',
-        )
-      }
-
-      const jadwal =
-        await tx.jadwal.findUnique({
-          where: {
-            id: dto.jadwalId,
-          },
-        })
-
-      if (!jadwal) {
-        throw new NotFoundException(
-          'Jadwal tidak ditemukan',
-        )
-      }
-
-      const kursiIds =
-        dto.penumpang.map(
-          (p) =>
-            p.kursiId,
-        )
-
-      const kursi =
-        await tx.kursi.findMany({
-          where: {
-            id: {
-              in: kursiIds,
+    userId: string,
+    dto: CreatePembelianDto,
+  ) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const pelanggan =
+          await tx.pelanggan.findFirst({
+            where: {
+              userId,
             },
-          },
-        })
+          })
 
-      if (
-        kursi.length !==
-        kursiIds.length
-      ) {
-        throw new BadRequestException(
-          'Ada kursi tidak valid',
-        )
-      }
+        if (!pelanggan) {
+          throw new NotFoundException(
+            'Profil pelanggan belum dibuat',
+          )
+        }
 
-      const booked =
-        await tx.detailPembelian.findMany({
-          where: {
-            jadwalId:
-              dto.jadwalId,
-
-            kursiId: {
-              in: kursiIds,
+        const jadwal =
+          await tx.jadwal.findUnique({
+            where: {
+              id: dto.jadwalId,
             },
-          },
-        })
+          })
 
-      if (
-        booked.length
-      ) {
-        throw new BadRequestException(
-          'Kursi sudah dibooking',
-        )
-      }
+        if (!jadwal) {
+          throw new NotFoundException(
+            'Jadwal tidak ditemukan',
+          )
+        }
 
-      const pembelian =
-        await tx.pembelian.create({
-          data: {
-            kodeBooking:
-              `TRX-${Date.now()}`,
+        const kursiIds =
+          dto.penumpang.map(
+            (p) =>
+              p.kursiId,
+          )
 
-            pelangganId:
-              pelanggan.id,
-
-            jadwalId:
-              dto.jadwalId,
-
-            total:
-              Number(
-                jadwal.harga,
-              ) *
-              dto
-                .penumpang
-                .length,
-
-            status:
-              'PENDING',
-          },
-        })
-
-      await tx.detailPembelian.createMany(
-        {
-          data:
-            dto.penumpang.map(
-              (
-                p,
-              ) => {
-                const seat =
-                  kursi.find(
-                    (
-                      k,
-                    ) =>
-                      k.id ===
-                      p.kursiId,
-                  )!
-
-                return {
-                  pembelianId:
-                    pembelian.id,
-
-                  jadwalId:
-                    dto.jadwalId,
-
-                  kursiId:
-                    p.kursiId,
-
-                  gerbongId:
-                    seat.gerbongId,
-
-                  namaPenumpang:
-                    p.namaPenumpang,
-                }
+        const kursi =
+          await tx.kursi.findMany({
+            where: {
+              id: {
+                in: kursiIds,
               },
-            ),
-        },
-      )
+            },
+          })
 
-      await tx.payment.create({
-        data: {
-          pembelianId:
+        if (
+          kursi.length !==
+          kursiIds.length
+        ) {
+          throw new BadRequestException(
+            'Ada kursi tidak valid',
+          )
+        }
+
+        const booked =
+          await tx.detailPembelian.findMany({
+            where: {
+              jadwalId:
+                dto.jadwalId,
+
+              kursiId: {
+                in: kursiIds,
+              },
+            },
+          })
+
+        if (
+          booked.length
+        ) {
+          throw new BadRequestException(
+            'Kursi sudah dibooking',
+          )
+        }
+
+        const pembelian =
+          await tx.pembelian.create({
+            data: {
+              kodeBooking:
+                `TRX-${Date.now()}`,
+
+              pelangganId:
+                pelanggan.id,
+
+              jadwalId:
+                dto.jadwalId,
+
+              total:
+                Number(
+                  jadwal.harga,
+                ) *
+                dto
+                  .penumpang
+                  .length,
+
+              status:
+                'PENDING',
+            },
+          })
+
+        await tx.detailPembelian.createMany(
+          {
+            data:
+              dto.penumpang.map(
+                (
+                  p,
+                ) => {
+                  const seat =
+                    kursi.find(
+                      (
+                        k,
+                      ) =>
+                        k.id ===
+                        p.kursiId,
+                    )!
+
+                  return {
+                    pembelianId:
+                      pembelian.id,
+
+                    jadwalId:
+                      dto.jadwalId,
+
+                    kursiId:
+                      p.kursiId,
+
+                    gerbongId:
+                      seat.gerbongId,
+
+                    namaPenumpang:
+                      p.namaPenumpang,
+                  }
+                },
+              ),
+          },
+        )
+
+        await tx.payment.create({
+          data: {
+            pembelianId:
+              pembelian.id,
+          },
+        })
+
+        return {
+          id:
             pembelian.id,
-        },
-      })
 
-      return {
-        id:
-          pembelian.id,
-
-        message:
-          'Pemesanan berhasil',
-      }
-    },
-  )
-}
+          message:
+            'Pemesanan berhasil',
+        }
+      },
+    )
+  }
 
   async confirmPayment(id: string) {
     return this.prisma.$transaction(async (tx) => {
@@ -321,37 +321,67 @@ export class PembelianService {
   findAll() {
     return this.prisma.pembelian.findMany({
       include: {
+        pelanggan: true,
+
+        payment: true,
+
         detail: {
           include: {
             kursi: true,
             gerbong: true,
           },
         },
-        jadwal: true,
-        payment: true,
+
+        jadwal: {
+          include: {
+            kereta: true,
+          },
+        },
       },
-    });
+
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
   }
 
   async findOne(id: string) {
-    const data = await this.prisma.pembelian.findUnique({
-      where: { id },
-      include: {
-        detail: {
-          include: {
-            kursi: true,
-            gerbong: true,
+    const data =
+      await this.prisma.pembelian.findUnique({
+        where: {
+          id,
+        },
+
+        include: {
+          pelanggan: true,
+
+          payment: true,
+
+          detail: {
+            include: {
+              kursi: true,
+              gerbong: true,
+            },
+          },
+
+          jadwal: {
+            include: {
+              kereta: {
+                include: {
+                  gerbong: true,
+                },
+              },
+            },
           },
         },
-        jadwal: true,
-        payment: true,
-      },
-    });
+      })
 
     if (!data) {
-      throw new NotFoundException('Pembelian tidak ditemukan');
+      throw new NotFoundException(
+        'Pembelian tidak ditemukan',
+      )
     }
 
-    return data;
+    return data
   }
 }
