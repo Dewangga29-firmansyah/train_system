@@ -1,73 +1,60 @@
 import {
   Controller,
-  Get,
-  Param,
   Post,
   Body,
-  Req,
-  Res,
+  Get,
+  Param,
   UseGuards,
-} from '@nestjs/common'
-
-import { Response } from 'express'
-
-import { PembelianService } from './pembelian.service'
-import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard'
+  Req,
+  Patch,
+  Res,
+} from '@nestjs/common';
+import { PembelianService } from './pembelian.service';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guard/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { CreatePembelianDto } from './dto/create-pembelian.dto';
+import express from 'express';
 
 @Controller('pembelian')
-@UseGuards(JwtAuthGuard)
 export class PembelianController {
-  constructor(
-    private readonly service: PembelianService,
-  ) {}
+  constructor(private readonly pembelianService: PembelianService) {}
 
   @Post()
-  create(
-    @Req() req,
-    @Body() dto,
-  ) {
-    return this.service.create(
-      req.user.sub,
-      dto,
-    )
+  @UseGuards(JwtAuthGuard)
+  create(@Req() req: any, @Body() dto: CreatePembelianDto) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+    return this.pembelianService.create(req.user.sub, dto);
+  }
+
+  @Patch(':id/confirm')
+  @UseGuards(JwtAuthGuard)
+  confirm(@Param('id') id: string) {
+    return this.pembelianService.confirmPayment(id);
+  }
+
+  @Patch(':id/cancel')
+  @UseGuards(JwtAuthGuard)
+  cancel(@Param('id') id: string) {
+    return this.pembelianService.cancelPembelian(id);
+  }
+
+  @Get(':id/tiket')
+  @UseGuards(JwtAuthGuard)
+  generateTiket(@Param('id') id: string, @Res() res: express.Response) {
+    return this.pembelianService.generateTiketPdf(id, res);
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   findAll() {
-    return this.service.findAll()
+    return this.pembelianService.findAll();
   }
 
   @Get(':id')
-  findOne(
-    @Param('id')
-    id: string,
-  ) {
-    return this.service.findOne(
-      id,
-    )
-  }
-
-  @Post(':id/confirm')
-  confirm(
-    @Param('id')
-    id: string,
-  ) {
-    return this.service.confirmPayment(
-      id,
-    )
-  }
-
-  @Get(':id/pdf')
-  async pdf(
-    @Param('id')
-    id: string,
-
-    @Res()
-    res: Response,
-  ) {
-    return this.service.generateTiketPdf(
-      id,
-      res,
-    )
+  @UseGuards(JwtAuthGuard)
+  findOne(@Param('id') id: string) {
+    return this.pembelianService.findOne(id);
   }
 }
