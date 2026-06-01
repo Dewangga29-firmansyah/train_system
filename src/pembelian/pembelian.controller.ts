@@ -10,7 +10,7 @@ import {
   Res,
 } from '@nestjs/common'
 
-import { Response } from 'express'
+import express from 'express'
 
 import { PembelianService } from './pembelian.service'
 
@@ -70,9 +70,9 @@ export class PembelianController {
 
   @Get(':id/tiket')
   @UseGuards(JwtAuthGuard)
-  tiket(
+  generateTiket(
     @Param('id') id: string,
-    @Res() res: Response,
+    @Res() res: express.Response,
   ) {
     return this.pembelianService.generateTiketPdf(
       id,
