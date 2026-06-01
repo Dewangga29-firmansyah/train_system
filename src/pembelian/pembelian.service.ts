@@ -49,40 +49,6 @@ export class PembelianService {
           )
         }
 
-        const kursiIds =
-          dto.penumpang.map(
-            (v) => v.kursiId,
-          )
-
-        const booked =
-          await tx.detailPembelian.findMany({
-            where: {
-              jadwalId:
-                dto.jadwalId,
-
-              kursiId: {
-                in: kursiIds,
-              },
-            },
-          })
-
-        if (
-          booked.length
-        ) {
-          throw new BadRequestException(
-            'Kursi sudah dibooking',
-          )
-        }
-
-        const kursi =
-          await tx.kursi.findMany({
-            where: {
-              id: {
-                in: kursiIds,
-              },
-            },
-          })
-
         const pembelian =
           await tx.pembelian.create({
             data: {
@@ -106,25 +72,44 @@ export class PembelianService {
             },
           })
 
+        const kursi =
+          await tx.kursi.findMany({
+            where: {
+              id: {
+                in:
+                  dto.penumpang.map(
+                    (
+                      p,
+                    ) =>
+                      p.kursiId,
+                  ),
+              },
+            },
+          })
+
         await tx.detailPembelian.createMany({
           data:
             dto.penumpang.map(
-              (p) => ({
+              (
+                p,
+              ) => ({
                 pembelianId:
                   pembelian.id,
 
-                kursiId:
-                  p.kursiId,
-
                 jadwalId:
                   dto.jadwalId,
+
+                kursiId:
+                  p.kursiId,
 
                 namaPenumpang:
                   p.namaPenumpang,
 
                 gerbongId:
                   kursi.find(
-                    (k) =>
+                    (
+                      k,
+                    ) =>
                       k.id ===
                       p.kursiId,
                   )!
@@ -143,63 +128,22 @@ export class PembelianService {
         return {
           id:
             pembelian.id,
-
-          message:
-            'Pemesanan berhasil',
         }
       },
     )
   }
 
   async findMine(
-  userId: string,
-) {
-  return this.prisma.pembelian.findMany({
-    where: {
-      pelanggan: {
-        userId,
-      },
-    },
-
-    include: {
-      payment: true,
-
-      detail: {
-        include: {
-          kursi: true,
-          gerbong: true,
-        },
-      },
-
-      jadwal: {
-        include: {
-          kereta: true,
-        },
-      },
-    },
-
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
-}
-  async findOneMine(
-  userId: string,
-  id: string,
-) {
-  const tiket =
-    await this.prisma.pembelian.findFirst({
+    userId: string,
+  ) {
+    return this.prisma.pembelian.findMany({
       where: {
-        id,
-
         pelanggan: {
           userId,
         },
       },
 
       include: {
-        pelanggan: true,
-
         payment: true,
 
         detail: {
@@ -215,16 +159,56 @@ export class PembelianService {
           },
         },
       },
-    })
 
-  if (!tiket) {
-    throw new NotFoundException(
-      'Tiket tidak ditemukan',
-    )
+      orderBy: {
+        createdAt:
+          'desc',
+      },
+    })
   }
 
-  return tiket
-}
+  async findOneMine(
+    userId: string,
+    id: string,
+  ) {
+    const data =
+      await this.prisma.pembelian.findFirst({
+        where: {
+          id,
+
+          pelanggan: {
+            userId,
+          },
+        },
+
+        include: {
+          pelanggan: true,
+
+          payment: true,
+
+          detail: {
+            include: {
+              kursi: true,
+              gerbong: true,
+            },
+          },
+
+          jadwal: {
+            include: {
+              kereta: true,
+            },
+          },
+        },
+      })
+
+    if (!data) {
+      throw new NotFoundException(
+        'Tiket tidak ditemukan',
+      )
+    }
+
+    return data
+  }
 
   async confirmPayment(
     userId: string,
@@ -255,28 +239,7 @@ export class PembelianService {
       data: {
         status:
           'PAID',
-      },
-    })
-  }
-
-  async cancelPembelian(
-    userId: string,
-    id: string,
-  ) {
-    await this.findOneMine(
-      userId,
-      id,
-    )
-
-    return this.prisma.pembelian.update({
-      where: {
-        id,
-      },
-
-      data: {
-        status:
-          'CANCELED',
-      },
+        },
     })
   }
 
@@ -308,24 +271,8 @@ export class PembelianService {
       res,
     )
 
-    doc
-      .fontSize(24)
-      .text(
-        'TIKET KERETA',
-      )
-
-    doc.moveDown()
-
     doc.text(
       data.kodeBooking,
-    )
-
-    doc.text(
-      data.jadwal.asal,
-    )
-
-    doc.text(
-      data.jadwal.tujuan,
     )
 
     doc.image(
@@ -335,12 +282,6 @@ export class PembelianService {
         )[1],
         'base64',
       ),
-      {
-        fit: [
-          180,
-          180,
-        ],
-      },
     )
 
     doc.end()

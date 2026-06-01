@@ -15,7 +15,9 @@ import express from 'express'
 import { PembelianService } from './pembelian.service'
 
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard'
+
 import { RolesGuard } from 'src/auth/guard/roles.guard'
+
 import { Roles } from 'src/auth/decorators/roles.decorator'
 
 import { CreatePembelianDto } from './dto/create-pembelian.dto'
@@ -50,7 +52,7 @@ export class PembelianController {
 
   @Get('mine/:id')
   @UseGuards(JwtAuthGuard)
-  mineDetail(
+  detail(
     @Req() req: any,
     @Param('id') id: string,
   ) {
@@ -67,18 +69,6 @@ export class PembelianController {
     @Param('id') id: string,
   ) {
     return this.pembelianService.confirmPayment(
-      req.user.sub,
-      id,
-    )
-  }
-
-  @Patch(':id/cancel')
-  @UseGuards(JwtAuthGuard)
-  cancel(
-    @Req() req: any,
-    @Param('id') id: string,
-  ) {
-    return this.pembelianService.cancelPembelian(
       req.user.sub,
       id,
     )
