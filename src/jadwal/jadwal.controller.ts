@@ -16,7 +16,13 @@ import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guard/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { SearchJadwalDto } from './dto/search-jadwal.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Jadwal')
+
+@ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard)
 @Controller('jadwal')
 export class JadwalController {
   constructor(private jadwalService: JadwalService) {}

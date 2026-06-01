@@ -10,11 +10,9 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
-
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:deploy": "prisma migrate deploy",
-
     "deploy": "npm run prisma:generate && npm run prisma:deploy && npm run build && npm run start:prod"
   },
   "dependencies": {
@@ -24,7 +22,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
-    "@nestjs/swagger": "^11.4.2",
+    "@nestjs/swagger": "^11.4.4",
     "@prisma/client": "^5.22.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",

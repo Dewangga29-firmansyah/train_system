@@ -15,7 +15,12 @@ import { RolesGuard } from 'src/auth/guard/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { CreatePembelianDto } from './dto/create-pembelian.dto';
 import express from 'express';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard)
+@ApiTags('Pembelian')
 @Controller('pembelian')
 export class PembelianController {
   constructor(private readonly pembelianService: PembelianService) {}
