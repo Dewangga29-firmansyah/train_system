@@ -13,77 +13,161 @@ import { Response } from 'express';
 export class PembelianService {
   constructor(private prisma: PrismaService) {}
 
-  async create(userId: string, dto: CreatePembelianDto) {
-    return this.prisma.$transaction(async (tx) => {
-      const jadwal = await tx.jadwal.findUnique({
-        where: { id: dto.jadwalId },
-      });
+  async create(
+  userId: string,
+  dto: CreatePembelianDto,
+) {
+  return this.prisma.$transaction(
+    async (tx) => {
+      const pelanggan =
+        await tx.pelanggan.findFirst({
+          where: {
+            userId,
+          },
+        })
+
+      if (!pelanggan) {
+        throw new NotFoundException(
+          'Profil pelanggan belum dibuat',
+        )
+      }
+
+      const jadwal =
+        await tx.jadwal.findUnique({
+          where: {
+            id: dto.jadwalId,
+          },
+        })
 
       if (!jadwal) {
-        throw new NotFoundException('Jadwal tidak ditemukan');
+        throw new NotFoundException(
+          'Jadwal tidak ditemukan',
+        )
       }
 
-      const kursiIds = dto.penumpang.map((p) => p.kursiId);
+      const kursiIds =
+        dto.penumpang.map(
+          (p) =>
+            p.kursiId,
+        )
 
-      const existing = await tx.detailPembelian.findMany({
-        where: {
-          jadwalId: dto.jadwalId,
-          kursiId: { in: kursiIds },
-        },
-      });
+      const kursi =
+        await tx.kursi.findMany({
+          where: {
+            id: {
+              in: kursiIds,
+            },
+          },
+        })
 
-      if (existing.length > 0) {
-        throw new BadRequestException('Kursi sudah dibooking');
+      if (
+        kursi.length !==
+        kursiIds.length
+      ) {
+        throw new BadRequestException(
+          'Ada kursi tidak valid',
+        )
       }
 
-      const kursiList = await tx.kursi.findMany({
-        where: {
-          id: { in: kursiIds },
+      const booked =
+        await tx.detailPembelian.findMany({
+          where: {
+            jadwalId:
+              dto.jadwalId,
+
+            kursiId: {
+              in: kursiIds,
+            },
+          },
+        })
+
+      if (
+        booked.length
+      ) {
+        throw new BadRequestException(
+          'Kursi sudah dibooking',
+        )
+      }
+
+      const pembelian =
+        await tx.pembelian.create({
+          data: {
+            kodeBooking:
+              `TRX-${Date.now()}`,
+
+            pelangganId:
+              pelanggan.id,
+
+            jadwalId:
+              dto.jadwalId,
+
+            total:
+              Number(
+                jadwal.harga,
+              ) *
+              dto
+                .penumpang
+                .length,
+
+            status:
+              'PENDING',
+          },
+        })
+
+      await tx.detailPembelian.createMany(
+        {
+          data:
+            dto.penumpang.map(
+              (
+                p,
+              ) => {
+                const seat =
+                  kursi.find(
+                    (
+                      k,
+                    ) =>
+                      k.id ===
+                      p.kursiId,
+                  )!
+
+                return {
+                  pembelianId:
+                    pembelian.id,
+
+                  jadwalId:
+                    dto.jadwalId,
+
+                  kursiId:
+                    p.kursiId,
+
+                  gerbongId:
+                    seat.gerbongId,
+
+                  namaPenumpang:
+                    p.namaPenumpang,
+                }
+              },
+            ),
         },
-      });
-
-      const total = Number(jadwal.harga) * dto.penumpang.length;
-
-      const pembelian = await tx.pembelian.create({
-        data: {
-          kodeBooking: `TRX-${Date.now()}`,
-          pelangganId: userId,
-          jadwalId: dto.jadwalId,
-          total,
-          status: 'PENDING',
-        },
-      });
-
-      const detailData = dto.penumpang.map((p) => {
-        const kursi = kursiList.find((k) => k.id === p.kursiId);
-
-        if (!kursi) {
-          throw new BadRequestException('Kursi tidak ditemukan');
-        }
-
-        return {
-          namaPenumpang: p.namaPenumpang,
-          kursiId: p.kursiId,
-          gerbongId: kursi.gerbongId,
-          jadwalId: dto.jadwalId,
-          pembelianId: pembelian.id,
-        };
-      });
-
-      await tx.detailPembelian.createMany({
-        data: detailData,
-      });
+      )
 
       await tx.payment.create({
         data: {
-          pembelianId: pembelian.id,
-          qrImageUrl: null,
+          pembelianId:
+            pembelian.id,
         },
-      });
+      })
 
-      return pembelian;
-    });
-  }
+      return {
+        id:
+          pembelian.id,
+
+        message:
+          'Pemesanan berhasil',
+      }
+    },
+  )
+}
 
   async confirmPayment(id: string) {
     return this.prisma.$transaction(async (tx) => {
