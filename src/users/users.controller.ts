@@ -7,12 +7,23 @@ import {
   Patch,
   Delete,
   UseGuards,
+<<<<<<< HEAD
 } from '@nestjs/common'
 
 import { UsersService } from './users.service'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard'
 
+=======
+} from '@nestjs/common';
+import { UsersService } from './users.service';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+
+@ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard)
+@ApiTags('Users')
+>>>>>>> 5c8674b (sync)
 @Controller('users')
 export class UsersController {
   constructor(
@@ -23,21 +34,17 @@ export class UsersController {
   async create(
     @Body()
     body: {
-      username: string
-      password: string
-      role:
-        | 'ADMIN'
-        | 'PELANGGAN'
+      username: string;
+      password: string;
+      role: 'ADMIN' | 'PELANGGAN';
     },
   ) {
-    return this.usersService.create(
-      body,
-    )
+    return this.usersService.create(body);
   }
 
   @Get()
   async findAll() {
-    return this.usersService.findAll()
+    return this.usersService.findAll();
   }
 
   @Get(':id')
@@ -45,9 +52,7 @@ export class UsersController {
     @Param('id')
     id: string,
   ) {
-    return this.usersService.findOne(
-      id,
-    )
+    return this.usersService.findOne(id);
   }
 
   @Patch(':id')
@@ -57,14 +62,11 @@ export class UsersController {
 
     @Body()
     body: {
-      username?: string
-      password?: string
+      username?: string;
+      password?: string;
     },
   ) {
-    return this.usersService.update(
-      id,
-      body,
-    )
+    return this.usersService.update(id, body);
   }
 
   @Delete(':id')
@@ -72,26 +74,20 @@ export class UsersController {
     @Param('id')
     id: string,
   ) {
-    return this.usersService.remove(
-      id,
-    )
+    return this.usersService.remove(id);
   }
 
-  @Post(
-    'bootstrap-admin',
-  )
+  @Post('bootstrap-admin')
   async bootstrapAdmin(
     @Body()
     body: {
-      username: string
-      password: string
-      nama: string
-      alamat: string
-      telp: string
+      username: string;
+      password: string;
+      nama: string;
+      alamat: string;
+      telp: string;
     },
   ) {
-    return this.usersService.bootstrapAdmin(
-      body,
-    )
+    return this.usersService.bootstrapAdmin(body);
   }
 }

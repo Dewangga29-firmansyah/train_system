@@ -8,6 +8,7 @@ import {
   Req,
   Patch,
   Res,
+<<<<<<< HEAD
 } from '@nestjs/common'
 
 import express from 'express'
@@ -24,6 +25,16 @@ import { RolesGuard } from 'src/auth/guard/roles.guard'
 import { Roles } from 'src/auth/decorators/roles.decorator'
 
 import { CreatePembelianDto } from './dto/create-pembelian.dto'
+=======
+} from '@nestjs/common';
+import { PembelianService } from './pembelian.service';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guard/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { CreatePembelianDto } from './dto/create-pembelian.dto';
+import express from 'express';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+>>>>>>> 5c8674b (sync)
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
@@ -35,7 +46,6 @@ export class PembelianController {
   ) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   create(
     @Req() req: any,
     @Body() dto: CreatePembelianDto,
@@ -43,21 +53,19 @@ export class PembelianController {
     return this.pembelianService.create(
       req.user.sub,
       dto,
-    )
+    );
   }
 
   @Get('mine')
-  @UseGuards(JwtAuthGuard)
   mine(
     @Req() req: any,
   ) {
     return this.pembelianService.findMine(
       req.user.sub,
-    )
+    );
   }
 
   @Get('mine/:id')
-  @UseGuards(JwtAuthGuard)
   detail(
     @Req() req: any,
     @Param('id') id: string,
@@ -65,11 +73,10 @@ export class PembelianController {
     return this.pembelianService.findOneMine(
       req.user.sub,
       id,
-    )
+    );
   }
 
   @Patch(':id/confirm')
-  @UseGuards(JwtAuthGuard)
   confirm(
     @Req() req: any,
     @Param('id') id: string,
@@ -77,11 +84,10 @@ export class PembelianController {
     return this.pembelianService.confirmPayment(
       req.user.sub,
       id,
-    )
+    );
   }
 
   @Get(':id/tiket')
-  @UseGuards(JwtAuthGuard)
   tiket(
     @Req() req: any,
     @Param('id') id: string,
@@ -91,7 +97,7 @@ export class PembelianController {
       req.user.sub,
       id,
       res,
-    )
+    );
   }
 
   @Get()
@@ -101,6 +107,6 @@ export class PembelianController {
   )
   @Roles('ADMIN')
   findAll() {
-    return this.pembelianService.findAll()
+    return this.pembelianService.findAll();
   }
 }

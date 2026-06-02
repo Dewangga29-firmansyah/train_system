@@ -1,6 +1,5 @@
 import {
   Injectable,
-  BadRequestException,
   NotFoundException,
 } from '@nestjs/common'
 
@@ -15,7 +14,7 @@ import { Response } from 'express'
 export class PembelianService {
   constructor(
     private prisma: PrismaService,
-  ) { }
+  ) {}
 
   async create(
     userId: string,
@@ -78,9 +77,7 @@ export class PembelianService {
               id: {
                 in:
                   dto.penumpang.map(
-                    (
-                      p,
-                    ) =>
+                    (p) =>
                       p.kursiId,
                   ),
               },
@@ -90,9 +87,7 @@ export class PembelianService {
         await tx.detailPembelian.createMany({
           data:
             dto.penumpang.map(
-              (
-                p,
-              ) => ({
+              (p) => ({
                 pembelianId:
                   pembelian.id,
 
@@ -107,13 +102,10 @@ export class PembelianService {
 
                 gerbongId:
                   kursi.find(
-                    (
-                      k,
-                    ) =>
+                    (k) =>
                       k.id ===
                       p.kursiId,
-                  )!
-                    .gerbongId,
+                  )!.gerbongId,
               }),
             ),
         })
@@ -151,41 +143,90 @@ export class PembelianService {
       return []
     }
 
-    const tiket =
-      await this.prisma.pembelian.findMany({
-        where: {
-          pelangganId:
-            pelanggan.id,
+    return this.prisma.pembelian.findMany({
+      where: {
+        pelangganId:
+          pelanggan.id,
 
-          // tampilkan yang benar-benar ada transaksi
-          detail: {
-            some: {},
+        detail: {
+          some: {},
+        },
+      },
+
+      include: {
+        jadwal: {
+          include: {
+            kereta: true,
           },
         },
 
+        detail: {
+          include: {
+            kursi: true,
+            gerbong: true,
+          },
+        },
+
+        payment: true,
+      },
+
+      orderBy: {
+        createdAt:
+          'desc',
+      },
+    })
+  }
+
+  async findOneMine(
+    userId: string,
+    id: string,
+  ) {
+    const pelanggan =
+      await this.prisma.pelanggan.findFirst({
+        where: {
+          userId,
+        },
+      })
+
+    if (!pelanggan) {
+      throw new NotFoundException(
+        'Pelanggan tidak ditemukan',
+      )
+    }
+
+    const pembelian =
+      await this.prisma.pembelian.findFirst({
+        where: {
+          id,
+          pelangganId:
+            pelanggan.id,
+        },
+
         include: {
+          payment: true,
+
+          detail: {
+            include: {
+              kursi: true,
+              gerbong: true,
+            },
+          },
+
           jadwal: {
             include: {
               kereta: true,
             },
           },
-
-          detail: {
-            include: {
-              kursi: true,
-            },
-          },
-
-          payment: true,
-        },
-
-        orderBy: {
-          createdAt:
-            'desc',
         },
       })
 
-    return tiket
+    if (!pembelian) {
+      throw new NotFoundException(
+        'Pembelian tidak ditemukan',
+      )
+    }
+
+    return pembelian
   }
 
   async findOneMine(
@@ -279,19 +320,15 @@ export class PembelianService {
       'application/pdf',
     )
 
-    doc.pipe(
-      res,
-    )
+    doc.pipe(res)
 
     doc.text(
-      data.kodeBooking,
+      `Kode Booking: ${data.kodeBooking}`,
     )
 
     doc.image(
       Buffer.from(
-        qr.split(
-          ',',
-        )[1],
+        qr.split(',')[1],
         'base64',
       ),
     )

@@ -2,11 +2,11 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-} from '@nestjs/common'
+} from '@nestjs/common';
 
-import { PrismaService } from 'src/prisma/prisma.service'
+import { PrismaService } from 'src/prisma/prisma.service';
 
-import * as bcrypt from 'bcrypt'
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -16,60 +16,48 @@ export class UsersService {
 
   async create(
     data: {
-      username: string
-      password: string
-      role:
-        | 'ADMIN'
-        | 'PELANGGAN'
+      username: string;
+      password: string;
+      role: 'ADMIN' | 'PELANGGAN';
     },
   ) {
     const username =
-      data.username.trim()
+      data.username.trim();
 
     const exist =
-      await this.prisma.user.findUnique(
-        {
-          where: {
-            username,
-          },
+      await this.prisma.user.findUnique({
+        where: {
+          username,
         },
-      )
+      });
 
     if (exist) {
       throw new BadRequestException(
         'Username sudah digunakan',
-      )
+      );
     }
 
     const hashed =
       await bcrypt.hash(
         data.password,
         10,
-      )
+      );
 
     return this.prisma.user.create({
       data: {
         username,
 
-        password:
-          hashed,
+        password: hashed,
 
-        role:
-          data.role,
+        role: data.role,
 
-        ...(data.role ===
-        'ADMIN'
+        ...(data.role === 'ADMIN'
           ? {
               petugas: {
                 create: {
-                  nama:
-                    username,
-
-                  alamat:
-                    '-',
-
-                  telp:
-                    '-',
+                  nama: username,
+                  alamat: '-',
+                  telp: '-',
                 },
               },
             }
@@ -87,185 +75,156 @@ export class UsersService {
 
                   telp:
                     '-',
+                  nik: `AUTO-${Date.now()}`,
+                  nama: username,
+                  alamat: '-',
+                  telp: '-',
                 },
               },
             }),
       },
 
       include: {
-        pelanggan:
-          true,
-
-        petugas:
-          true,
+        pelanggan: true,
+        petugas: true,
       },
-    })
+    });
   }
 
   async findAll() {
     return this.prisma.user.findMany({
       include: {
-        pelanggan:
-          true,
-
-        petugas:
-          true,
+        pelanggan: true,
+        petugas: true,
       },
-    })
+    });
   }
 
   async findOne(
     id: string,
   ) {
     const user =
-      await this.prisma.user.findUnique(
-        {
-          where: {
-            id,
-          },
-
-          include: {
-            pelanggan:
-              true,
-
-            petugas:
-              true,
-          },
+      await this.prisma.user.findUnique({
+        where: {
+          id,
         },
-      )
+
+        include: {
+          pelanggan: true,
+          petugas: true,
+        },
+      });
 
     if (!user) {
       throw new NotFoundException(
         'User tidak ditemukan',
-      )
+      );
     }
 
-    return user
+    return user;
   }
 
   async findByUsername(
     username: string,
   ) {
-    return this.prisma.user.findUnique(
-      {
-        where: {
-          username,
-        },
-
-        include: {
-          pelanggan:
-            true,
-
-          petugas:
-            true,
-        },
+    return this.prisma.user.findUnique({
+      where: {
+        username,
       },
-    )
+
+      include: {
+        pelanggan: true,
+        petugas: true,
+      },
+    });
   }
 
   async update(
     id: string,
     data: {
-      username?: string
-      password?: string
+      username?: string;
+      password?: string;
     },
   ) {
-    await this.findOne(
-      id,
-    )
+    await this.findOne(id);
 
-    if (
-      data.password
-    ) {
+    if (data.password) {
       data.password =
         await bcrypt.hash(
           data.password,
           10,
-        )
+        );
     }
 
-    return this.prisma.user.update(
-      {
-        where: {
-          id,
-        },
-
-        data,
+    return this.prisma.user.update({
+      where: {
+        id,
       },
-    )
+
+      data,
+    });
   }
 
   async remove(
     id: string,
   ) {
-    await this.findOne(
-      id,
-    )
+    await this.findOne(id);
 
-    return this.prisma.user.delete(
-      {
-        where: {
-          id,
-        },
+    return this.prisma.user.delete({
+      where: {
+        id,
       },
-    )
+    });
   }
 
   async bootstrapAdmin(
     data: {
-      username: string
-      password: string
-      nama: string
-      alamat: string
-      telp: string
+      username: string;
+      password: string;
+      nama: string;
+      alamat: string;
+      telp: string;
     },
   ) {
     const admin =
-      await this.prisma.user.findFirst(
-        {
-          where: {
-            role:
-              'ADMIN',
-          },
+      await this.prisma.user.findFirst({
+        where: {
+          role: 'ADMIN',
         },
-      )
+      });
 
     if (admin) {
       throw new BadRequestException(
         'Admin sudah ada',
-      )
+      );
     }
 
     const hashed =
       await bcrypt.hash(
         data.password,
         10,
-      )
+      );
 
     return this.prisma.user.create({
       data: {
-        username:
-          data.username,
+        username: data.username,
 
-        password:
-          hashed,
+        password: hashed,
 
-        role:
-          'ADMIN',
+        role: 'ADMIN',
 
         petugas: {
           create: {
-            nama:
-              data.nama,
-
-            alamat:
-              data.alamat,
-
-            telp:
-              data.telp,
+            nama: data.nama,
+            alamat: data.alamat,
+            telp: data.telp,
           },
         },
       },
-    })
+
+      include: {
+        petugas: true,
+      },
+    });
   }
 }
