@@ -4,18 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app =
-    await NestFactory.create(
-      AppModule,
-    );
-
-  app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-    ],
-    credentials: true,
-  });
+  const app = await NestFactory.create(AppModule);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -24,48 +13,27 @@ async function bootstrap() {
     }),
   );
 
-  const config =
-    new DocumentBuilder()
-      .setTitle('Train API')
-      .setDescription(
-        'Train API Docs',
-      )
-      .setVersion('1.0')
-      .addBearerAuth(
-        {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat:
-            'JWT',
-        },
-        'JWT-auth',
-      )
-      .build();
+  const config = new DocumentBuilder()
+    .setTitle('Train API')
+    .setDescription('Train API Docs')
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+      'JWT-auth',
+    )
+    .build();
 
-  const document =
-    SwaggerModule.createDocument(
-      app,
-      config,
-    );
+  const document = SwaggerModule.createDocument(app, config);
 
-  SwaggerModule.setup(
-    'api',
-    app,
-    document,
-  );
+  SwaggerModule.setup('api', app, document);
 
-  const port =
-    process.env.PORT ||
-    3000;
+  await app.listen(3000);
 
-  await app.listen(
-  Number(port),
-  '0.0.0.0',
-);
-
-  console.log(
-    `RUNNING: ${port}`,
-  );
+  console.log(`RUNNING: http://localhost:3000/api`);
 }
 
 bootstrap();
