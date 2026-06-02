@@ -58,7 +58,10 @@ async function bootstrap() {
     process.env.PORT ||
     3000;
 
-  await app.listen(port);
+  await app.listen(
+  Number(port),
+  '0.0.0.0',
+);
 
   console.log(
     `RUNNING: ${port}`,
