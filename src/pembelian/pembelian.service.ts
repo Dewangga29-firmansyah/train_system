@@ -285,7 +285,7 @@ export class PembelianService {
     // Total
     doc.rect(50, doc.y, doc.page.width - 100, 40).fill('#08152d');
     doc.fillColor('#ffffff').fontSize(14).font('Helvetica-Bold').text('TOTAL PEMBAYARAN', 70, doc.y + 12, { continued: true });
-    doc.fillColor('#00ffff').text(`Rp ${data.total.toLocaleString('id-ID')}`, { align: 'right' });
+    doc.fillColor('#00ffff').text(`Rp ${data.total.toNumber().toLocaleString('id-ID')}`, { align: 'right' });
     
     // Footer
     doc.fillColor('#64748b').fontSize(10).font('Helvetica');
