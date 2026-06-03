@@ -1,10 +1,11 @@
 import {
-  IsArray,
   IsNotEmpty,
   IsString,
   ValidateNested,
+  IsArray,
   ArrayMinSize,
 } from 'class-validator';
+
 import { Type } from 'class-transformer';
 
 class PenumpangDto {

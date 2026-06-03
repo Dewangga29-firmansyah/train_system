@@ -26,6 +26,7 @@ export class PaymentService {
 
   async confirm(pembelianId: string) {
     return this.prisma.$transaction(async (tx) => {
+      // 1. cek pembelian
       const pembelian = await tx.pembelian.findUnique({
         where: { id: pembelianId },
       });
@@ -35,16 +36,31 @@ export class PaymentService {
       }
 
       if (pembelian.status === 'PAID') {
-        throw new BadRequestException('Sudah dibayar');
+        throw new BadRequestException('Pembelian sudah dibayar');
       }
 
-      const payment = await tx.payment.update({
+      // 2. cek payment
+      const payment = await tx.payment.findUnique({
         where: { pembelianId },
+      });
+
+      if (!payment) {
+        throw new NotFoundException('Data payment tidak ditemukan');
+      }
+
+      if (payment.paidAt) {
+        throw new BadRequestException('Payment sudah dikonfirmasi');
+      }
+
+      // 3. update payment
+      const updatedPayment = await tx.payment.update({
+        where: { id: payment.id }, // lebih aman pakai ID
         data: {
           paidAt: new Date(),
         },
       });
 
+      // 4. update pembelian
       await tx.pembelian.update({
         where: { id: pembelianId },
         data: {
@@ -52,7 +68,7 @@ export class PaymentService {
         },
       });
 
-      return payment;
+      return updatedPayment;
     });
   }
 }
