@@ -13,11 +13,27 @@ async function bootstrap() {
     )
 
   app.enableCors({
-    origin: '*',
-    methods:
-      'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders:
-      '*',
+    origin: [
+      'http://localhost:3000',
+    ],
+
+    methods: [
+      'GET',
+      'POST',
+      'PUT',
+      'PATCH',
+      'DELETE',
+      'OPTIONS',
+    ],
+
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
+    ],
+
+    credentials: false,
   })
 
   app.useGlobalPipes(
@@ -29,15 +45,9 @@ async function bootstrap() {
 
   const config =
     new DocumentBuilder()
-      .setTitle(
-        'Train API',
-      )
-      .setDescription(
-        'Train API Docs',
-      )
-      .setVersion(
-        '1.0',
-      )
+      .setTitle('Train API')
+      .setDescription('Train API Docs')
+      .setVersion('1.0')
       .addBearerAuth()
       .build()
 
@@ -54,12 +64,12 @@ async function bootstrap() {
   )
 
   await app.listen(
-    process.env.PORT ||
-      3000,
+    process.env.PORT || 3000,
+    '0.0.0.0', // penting di Railway
   )
 
   console.log(
-    'RUNNING',
+    `RUNNING`
   )
 }
 
