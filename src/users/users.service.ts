@@ -63,24 +63,13 @@ export class UsersService {
             }
           : {
               pelanggan: {
-                create: {
-                  nik:
-                    username,
-
-                  nama:
-                    username,
-
-                  alamat:
-                    '-',
-
-                  telp:
-                    '-',
-                  nik: `AUTO-${Date.now()}`,
-                  nama: username,
-                  alamat: '-',
-                  telp: '-',
-                },
-              },
+  create: {
+    nik: `AUTO-${Date.now()}`,
+    nama: username,
+    alamat: '-',
+    telp: '-',
+  },
+},
             }),
       },
 

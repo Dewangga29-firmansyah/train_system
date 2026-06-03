@@ -7,11 +7,15 @@ import {
   Patch,
   Delete,
   UseGuards,
-} from '@nestjs/common'
+} from '@nestjs/common';
 
-import { UsersService } from './users.service'
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard'
+import { UsersService } from './users.service';
+import {
+  ApiBearerAuth,
+  ApiTags,
+} from '@nestjs/swagger';
+
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
@@ -51,7 +55,6 @@ export class UsersController {
   async update(
     @Param('id')
     id: string,
-
     @Body()
     body: {
       username?: string;

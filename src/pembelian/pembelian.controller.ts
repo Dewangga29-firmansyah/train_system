@@ -8,22 +8,22 @@ import {
   Req,
   Patch,
   Res,
-} from '@nestjs/common'
+} from '@nestjs/common';
 
-import express from 'express'
+import express from 'express';
 
-import { ApiBearerAuth } from '@nestjs/swagger'
-import { ApiTags } from '@nestjs/swagger'
+import {
+  ApiBearerAuth,
+  ApiTags,
+} from '@nestjs/swagger';
 
-import { PembelianService } from './pembelian.service'
+import { PembelianService } from './pembelian.service';
 
-import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard'
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { RolesGuard } from 'src/auth/guard/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
-import { RolesGuard } from 'src/auth/guard/roles.guard'
-
-import { Roles } from 'src/auth/decorators/roles.decorator'
-
-import { CreatePembelianDto } from './dto/create-pembelian.dto'
+import { CreatePembelianDto } from './dto/create-pembelian.dto';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
