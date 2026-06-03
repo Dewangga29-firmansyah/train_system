@@ -220,27 +220,77 @@ export class PembelianService {
     res: Response,
   ) {
     const data = await this.findOneMine(userId, id);
-
     const qr = await QRCode.toDataURL(data.kodeBooking);
+    const doc = new PDFDocument({ margin: 50 });
 
-    const doc = new PDFDocument();
-
-    res.setHeader(
-      'Content-Type',
-      'application/pdf',
-    );
-
+    res.setHeader('Content-Type', 'application/pdf');
     doc.pipe(res);
 
-    doc.fontSize(14).text(
-      `Kode Booking: ${data.kodeBooking}`,
-    );
+    // Header
+    doc.rect(0, 0, doc.page.width, 100).fill('#08152d');
+    doc.fillColor('#00ffff').fontSize(24).font('Helvetica-Bold').text('RAIL', 50, 40, { continued: true });
+    doc.fillColor('#ffffff').text('TICKET');
+    doc.fillColor('#8fb5df').fontSize(10).font('Helvetica').text('Official Train E-Ticket', 50, 70);
 
-    doc.moveDown();
+    // QR Code on top right
+    doc.image(Buffer.from(qr.split(',')[1], 'base64'), doc.page.width - 150, 15, { width: 70 });
 
-    doc.image(Buffer.from(qr.split(',')[1], 'base64'), {
-      width: 150,
+    doc.moveDown(4);
+
+    // Info Box
+    doc.fillColor('#000000').fontSize(16).font('Helvetica-Bold').text('INFORMASI PERJALANAN', 50);
+    doc.moveDown(0.5);
+    
+    // Line separator
+    doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke('#e2e8f0');
+    doc.moveDown(1);
+
+    doc.fontSize(12).font('Helvetica');
+    const startY = doc.y;
+    
+    doc.font('Helvetica-Bold').text('Kode Booking:', 50, startY);
+    doc.font('Helvetica').text(data.kodeBooking, 150, startY);
+
+    doc.font('Helvetica-Bold').text('Status Tiket:', 50, startY + 20);
+    doc.fillColor(data.status === 'PAID' ? '#10b981' : '#f59e0b').text(data.status, 150, startY + 20);
+    doc.fillColor('#000000');
+
+    doc.font('Helvetica-Bold').text('Kereta:', 50, startY + 40);
+    doc.font('Helvetica').text(data.jadwal.kereta.nama, 150, startY + 40);
+
+    doc.font('Helvetica-Bold').text('Rute:', 50, startY + 60);
+    doc.font('Helvetica').text(`${data.jadwal.asal} - ${data.jadwal.tujuan}`, 150, startY + 60);
+
+    doc.font('Helvetica-Bold').text('Berangkat:', 50, startY + 80);
+    doc.font('Helvetica').text(new Date(data.jadwal.tanggalBerangkat).toLocaleString('id-ID'), 150, startY + 80);
+
+    doc.moveDown(2);
+
+    // Passengers
+    doc.fontSize(16).font('Helvetica-Bold').text('DAFTAR PENUMPANG', 50, doc.y + 40);
+    doc.moveDown(0.5);
+    doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke('#e2e8f0');
+    doc.moveDown(1);
+
+    data.detail.forEach((p, idx) => {
+      doc.rect(50, doc.y, doc.page.width - 100, 30).fill(idx % 2 === 0 ? '#f8fafc' : '#ffffff');
+      doc.fillColor('#000000');
+      doc.font('Helvetica-Bold').fontSize(12).text(p.namaPenumpang, 60, doc.y + 10, { continued: true });
+      doc.font('Helvetica').text(`    |    Kursi: ${p.kursi?.label || '-'}`);
+      doc.moveDown(1);
     });
+
+    doc.moveDown(2);
+
+    // Total
+    doc.rect(50, doc.y, doc.page.width - 100, 40).fill('#08152d');
+    doc.fillColor('#ffffff').fontSize(14).font('Helvetica-Bold').text('TOTAL PEMBAYARAN', 70, doc.y + 12, { continued: true });
+    doc.fillColor('#00ffff').text(`Rp ${data.total.toLocaleString('id-ID')}`, { align: 'right' });
+    
+    // Footer
+    doc.fillColor('#64748b').fontSize(10).font('Helvetica');
+    doc.text('Terima kasih telah menggunakan layanan RailTicket.', 50, doc.page.height - 70, { align: 'center' });
+    doc.text('Harap tunjukkan E-Ticket ini (digital atau cetak) kepada petugas saat boarding.', { align: 'center' });
 
     doc.end();
   }
