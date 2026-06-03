@@ -1,99 +1,46 @@
-import { ValidationPipe } from '@nestjs/common'
-
-import { ConfigService } from '@nestjs/config'
-
-import { NestFactory } from '@nestjs/core'
-
-import {
-  SwaggerModule,
-  DocumentBuilder,
-} from '@nestjs/swagger'
-
-import helmet from 'helmet'
-
-import compression from 'compression'
-
-import cookieParser from 'cookie-parser'
-
-import morgan from 'morgan'
-
-import { AppModule } from './app.module'
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app =
-    await NestFactory.create(
-      AppModule,
-    )
-
-  const configService =
-    app.get(ConfigService)
-
-  app.setGlobalPrefix('api')
+  const app = await NestFactory.create(AppModule);
 
   app.enableCors({
     origin: true,
-  })
-
-  app.use(helmet())
-
-  app.use(compression())
-
-  app.use(cookieParser())
-
-  app.use(morgan('dev'))
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type,Authorization,Accept',
+    credentials: true,
+  });
 
   app.useGlobalPipes(
-  new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  );
 
-    transformOptions: {
-      enableImplicitConversion: true,
-    },
-  }),
-)
+  const config = new DocumentBuilder()
+    .setTitle('Train API')
+    .setDescription('Train API Docs')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
 
-  const config =
-    new DocumentBuilder()
-      .setTitle('Lunch Flow API')
+  const document = SwaggerModule.createDocument(app, config);
 
-      .setDescription(
-        'Lunch Flow Backend Documentation',
-      )
+  SwaggerModule.setup('api', app, document);
 
-      .setVersion('1.0')
+  const port = Number(process.env.PORT) || 3000;
 
-      .addBearerAuth()
+  await app.listen(port, '0.0.0.0');
 
-      .build()
-
-  const document =
-    SwaggerModule.createDocument(
-      app,
-      config,
-    )
-
-  SwaggerModule.setup(
-    'api/docs',
-    app,
-    document,
-  )
-
-  const port =
-    configService.get<number>(
-      'PORT',
-    ) || 3000
-
-  await app.listen(port)
-
-  console.log(
-    `🚀 Server running on http://localhost:${port}/api`,
-  )
-
-  console.log(
-    `📄 Swagger running on http://localhost:${port}/api/docs`,
-  )
+  console.log(`🚂 Server running on port ${port}`);
+  console.log(`📚 Swagger: /api`);
 }
 
-bootstrap()
+bootstrap().catch((err) => {
+  console.error('❌ Failed to start application');
+  console.error(err);
+  process.exit(1);
+});

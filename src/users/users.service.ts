@@ -80,6 +80,72 @@ export class UsersService {
     });
   }
 
+  async createWithPelanggan(
+    data: {
+      username: string;
+      password: string;
+      role: 'ADMIN' | 'PELANGGAN';
+      nik: string;
+      nama: string;
+      alamat: string;
+      telp: string;
+    },
+  ) {
+    const username =
+      data.username.trim();
+
+    const exist =
+      await this.prisma.user.findUnique({
+        where: {
+          username,
+        },
+      });
+
+    if (exist) {
+      throw new BadRequestException(
+        'Username sudah digunakan',
+      );
+    }
+
+    const hashed =
+      await bcrypt.hash(
+        data.password,
+        10,
+      );
+
+    return this.prisma.user.create({
+      data: {
+        username,
+        password: hashed,
+        role: data.role,
+        ...(data.role === 'ADMIN'
+          ? {
+              petugas: {
+                create: {
+                  nama: data.nama,
+                  alamat: data.alamat,
+                  telp: data.telp,
+                },
+              },
+            }
+          : {
+              pelanggan: {
+                create: {
+                  nik: data.nik,
+                  nama: data.nama,
+                  alamat: data.alamat,
+                  telp: data.telp,
+                },
+              },
+            }),
+      },
+      include: {
+        pelanggan: true,
+        petugas: true,
+      },
+    });
+  }
+
   async findAll() {
     return this.prisma.user.findMany({
       include: {

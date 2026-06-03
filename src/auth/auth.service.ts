@@ -24,18 +24,14 @@ export class AuthService {
       throw new ConflictException('Username sudah digunakan');
     }
 
-    const user = await this.usersService.create({
+    const user = await this.usersService.createWithPelanggan({
       username: dto.username,
       password: dto.password,
       role: (dto.role === 'ADMIN' ? 'ADMIN' : 'PELANGGAN'),
-    });
-
-    await this.pelangganService.create({
       nik: dto.nik,
       nama: dto.nama,
       alamat: dto.alamat,
       telp: dto.telp,
-      userId: user.id,
     });
 
     return {
