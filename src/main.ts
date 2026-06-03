@@ -1,7 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import {
+  SwaggerModule,
+  DocumentBuilder,
+} from '@nestjs/swagger';
 
 async function bootstrap() {
   const app =
@@ -9,7 +12,9 @@ async function bootstrap() {
       AppModule,
     );
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix(
+    'api'
+  );
 
   app.enableCors({
     origin: '*',
@@ -25,7 +30,9 @@ async function bootstrap() {
   const config =
     new DocumentBuilder()
       .setTitle('Train API')
-      .setDescription('Train API Docs')
+      .setDescription(
+        'Train API Docs'
+      )
       .setVersion('1.0')
       .addBearerAuth()
       .build();
@@ -36,6 +43,7 @@ async function bootstrap() {
       config,
     );
 
+  // GANTI INI
   SwaggerModule.setup(
     'docs',
     app,
@@ -47,7 +55,7 @@ async function bootstrap() {
   );
 
   console.log(
-    `RUNNING`
+    'RUNNING'
   );
 }
 
