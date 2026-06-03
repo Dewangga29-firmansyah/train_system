@@ -43,7 +43,6 @@ async function bootstrap() {
       config,
     );
 
-  // GANTI INI
   SwaggerModule.setup(
     'docs',
     app,
@@ -51,7 +50,8 @@ async function bootstrap() {
   );
 
   await app.listen(
-    process.env.PORT || 3000
+    Number(process.env.PORT) || 3000,
+    '0.0.0.0'
   );
 
   console.log(
