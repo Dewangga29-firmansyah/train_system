@@ -37,6 +37,7 @@ async function bootstrap() {
 
   console.log(`🚂 Server running on port ${port}`);
   console.log(`📚 Swagger: /api`);
+  console.log(`localhost:${port}/api`);
 }
 
 bootstrap().catch((err) => {
