@@ -9,6 +9,8 @@ async function bootstrap() {
       AppModule,
     );
 
+  app.setGlobalPrefix('api');
+
   app.enableCors({
     origin: '*',
   });
@@ -23,9 +25,7 @@ async function bootstrap() {
   const config =
     new DocumentBuilder()
       .setTitle('Train API')
-      .setDescription(
-        'Train API Docs',
-      )
+      .setDescription('Train API Docs')
       .setVersion('1.0')
       .addBearerAuth()
       .build();
@@ -37,20 +37,17 @@ async function bootstrap() {
     );
 
   SwaggerModule.setup(
-    'api',
+    'docs',
     app,
     document,
   );
 
   await app.listen(
-    Number(
-      process.env.PORT
-    ) || 3000,
-    '0.0.0.0'
+    process.env.PORT || 3000
   );
 
   console.log(
-    'RUNNING'
+    `RUNNING`
   );
 }
 
